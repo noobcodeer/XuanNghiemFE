@@ -1,0 +1,40 @@
+import axios from 'axios';
+import {GETAREA} from 'config';
+import getUserCookies from 'getUserCookies'
+
+async function getArea() {
+    let data;
+    let url=GETAREA;
+    var user_cookies = await getUserCookies();
+    if (user_cookies) {
+        await axios.get(
+            url,
+            {
+                headers: {
+                    "Authorization": "Bearer " + user_cookies.token
+                
+                }
+            }
+        )
+            .then(function (response) {
+                data = response;
+            })
+            .catch(function (err) {
+                data = err.response;
+            });
+    
+        return data;
+    }
+    else {
+        return "Expired Token API";
+    }
+    
+        
+    
+
+
+}
+
+export default getArea;
+
+
