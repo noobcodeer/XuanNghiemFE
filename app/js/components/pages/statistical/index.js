@@ -201,7 +201,7 @@ function Statistical() {
   const [inventoryCylinder, setInventoryCylinder] = useState([]);
   const [cylinderTypes, setCylinderTypes] = useState([]);
   const [columnCylinderTypes, setColumnCylinderTypes] = useState([]);
-  const [inputTime,setInputTime] = useState(false);
+  const [inputTime,setInputTime] = useState("");
 
   const [waveHouse, setGetWaveHouse] = useState([]); // 
   const [waveHouseTruck, setGetWaveHouseTruck] = useState([]); //
@@ -228,6 +228,7 @@ function Statistical() {
   const [listManufacture, setListManufacture] = useState([]);
 
   const [monthDataForChart,setMonthDataForChart] = useState([]);
+  const [preciousDataForChart,setPreciousDataForChart]= useState([]);
 
   const [currentPageTurnbackHistory,setCurrentPageTurnbackHistory] = useState(1);
   const [currentPageExportHistory,setCurrentPageExportHistory] = useState(1);
@@ -547,6 +548,7 @@ async function getListWareHouseFullOrEmpty(idWareHouse,typeWareHouse) {
       setAdditionalUserStatistic(resultStatisticWare.data.data);
       // get data for chart
       getMonthDataForChart();
+      getPreciousDataForChart();
     }
     else if(typeWareHouse === "Warehouse_TRUCK"){
       await getWarehouseTruckStatistics({ target: selectedWareHouse, startDate, endDate, statisticalType });
@@ -769,9 +771,42 @@ async function getListWareHouseFullOrEmpty(idWareHouse,typeWareHouse) {
         formartData.push(tempMonth);
       }
       setMonthDataForChart(formartData);
+      console.log("day la data thang",formartData)
     }
   }
-
+//lay data theo qui
+const getPreciousDataForChart = async () => {
+  let url = SERVERAPI + 'statistic/getExportChart?target=$target&statisticalType=$statisticalType&dataType=quarter&startDate=$startDate&endDate=$endDate'
+    .replace("$startDate", startDate)
+    .replace("$endDate", endDate)
+    .replace("$statisticalType", statisticalType)
+    .replace("$target", selectedWareHouse);
+  let user_cookies = await getUserCookies();
+  // console.log("result123",user_cookies);
+  let result = await Axios.get(
+    url,
+    {
+        headers: {
+            "Authorization": "Bearer " + user_cookies.token
+        }
+    }
+)
+  // console.log("test006",result.data.data)
+  if(result.status === 200){
+    let formartData = [];
+    let tempQuarter = {};
+    for(let i = 0; i < result.data.data.length;i++){
+      tempQuarter = {};
+      tempQuarter.name ="Quý "+ result.data.data[i].quarter + "/" + result.data.data[i].year;
+      for(let j = 0; j < result.data.data[i].detail.length; j++){
+        tempQuarter[result.data.data[i].detail[j].name] = result.data.data[i].detail[j].statistic.numberExport;
+      }
+      formartData.push(tempQuarter);
+    }
+    setPreciousDataForChart(formartData);
+    // console.log("day la data quy ",formartData)
+  }
+}
   // Lấy ngày hiện tại
   function handleThisTime() {
     var el = document.getElementsByClassName("btn-history");
@@ -877,7 +912,32 @@ async function getListWareHouseFullOrEmpty(idWareHouse,typeWareHouse) {
     setStartDate(start)
     setEndDate(end)
   }
+const handleThisYear=(year)=>{
+  $(".btn-history").each(function (item, index) {
+      if (item === 0) {
+        $(this).removeClass("active");
+      }
+      if (item === 1) {
+        $(this).removeClass("active");
+      }
+      if (item === 2) {
+        $(this).removeClass("active");
+      }
+      if (item === 3) {
+        $(this).removeClass("active");
+      }
+    });
 
+  const now = moment(year)
+    
+    const start = now.startOf("year").toISOString()
+    const end = now.endOf("year").toISOString()
+
+    setStartTime(moment(start))
+    setEndTime(moment(end))
+    setStartDate(start)
+    setEndDate(end)
+}
   const handleButtonListExcel = async () => {
     let user_cookies = await getUserCookies();
     let id = user_cookies.user.id;
@@ -1733,7 +1793,8 @@ const handleChangePaginationInTurnbackHistory = async (page,pageSize) => {
           <Tooltip />
           <Legend />
           {columnCylinderTypes.map((item, index) => {
-                                return <Bar dataKey={item.title} barSize={60} key={index} stackId="a" fill={getRandomColor()}/>
+                                return <Bar dataKey={item.title} barSize={60} key={index} stackId="a" fill={getRandomColor()} />
+                                
           })}
           {/* <Bar dataKey="Bình 12" stackId="a" fill="#d115b2" />
           <Bar dataKey="Bình 30" stackId="a" fill="#4824d6" />
@@ -1746,25 +1807,28 @@ const handleChangePaginationInTurnbackHistory = async (page,pageSize) => {
         {/* Quarter Chart */}
         <ResponsiveContainer width="100%" height={400}>
           <BarChart
-          data={quarterData}
+          data={preciousDataForChart}
           >
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="name" />
           <YAxis />
           <Tooltip />
           <Legend />
-          <Bar dataKey="Bình 12" stackId="a" fill="#d115b2" />
+          {columnCylinderTypes.map((item, index) => {
+                                return <Bar dataKey={item.title} barSize={60} key={index} stackId="a" fill={getRandomColor()}/>
+          })}
+          {/* <Bar dataKey="Bình 12" stackId="a" fill="#d115b2" />
           <Bar dataKey="Bình 30" stackId="a" fill="#4824d6" />
-          <Bar dataKey="Bình 45" stackId="a" fill="#2c1a73" /> 
+          <Bar dataKey="Bình 45" stackId="a" fill="#2c1a73" />  */}
         </BarChart>
         </ResponsiveContainer>
         <h3 className="text-center">Biểu Đồ Xuất Hàng Theo Quý</h3>
         </div>
         {/* end quarter chart */}
         <div className="d-flex" style={{justifyContent: "right"}}>
-          {inputTime&&<input type="number" className="year_input" placeholder="Vui Lòng Nhập Vào Năm"/>}
-          <button className="btn btn-success mb-3 mr-3 ml-3" onClick={() => setInputTime(true)}>Chọn Năm</button>
-          <button className="btn btn-success mb-3 mr-3">Thống Kê</button>
+          <input type="number" className="year_input" onInput={e => setInputTime(e.target.value)}  placeholder="Vui Lòng Nhập Vào Năm"/>
+          <button className="btn btn-success mb-3 mr-3" onClick={()=>handleThisYear(inputTime)}>Chọn</button>
+          <button className="btn btn-success mb-3 mr-3" onClick={handleSeeDashboard}>Thống kê</button>
         </div>
       </div>
 }
